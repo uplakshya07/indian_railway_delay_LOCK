@@ -1,0 +1,58 @@
+Problem Definition: Indian Railways generates massive volumes of operational data daily -- scheduled timetables, station master records, and actual arrival/departure logs. Train delays across extensive rail networks disrupt travel schedules, reduce operational efficiency, and cascade into system-wide congestion. This project aims to analyze historical train delay data to uncover underlying punctuality patterns, pinpoint high-risk stations and bottlenecks, and forecast delays to enable proactive operational and commuter planning.
+
+Project Description: This project focuses on evaluating a comprehensive dataset of passenger train operations across the Indian Railways network over a full year. By analyzing scheduled timetables, station sequences, and recorded delays across multiple service types, the project addresses three primary objectives:
+- Punctuality & Temporal Pattern Analysis: Characterizing delay distributions across different times of the year, days of the week, and train categories (e.g., Express, Superfast, Premium services).
+- Bottleneck & High-Risk Route Identification: Mapping geographical and structural stress points across railway zones, identifying critical transit stations and sections that consistently trigger or amplify delays.
+- Delay Prediction: Forecasting anticipated arrival and departure delays at subsequent stations along a route, transforming raw operational records into actionable foresight.
+
+DATASET DETAILS:
+Source: https://www.kaggle.com/datasets/rxydenxd/indian-railways-delay-dataset
+
+This dataset contains the delay information for about 7,000 trains from Indian railways network for the past one year (2025-02-08 to 2026-02-07), for each day, for each station in their route.
+
+This dataset is scraped entirely from scratch using Python by the user with username "RXYDENXD" at www.kaggle.com. The goal was to build a comprehensive, multi-table dataset covering the schedules, station metadata, and real-world delay records for nearly the entire Indian Railways passenger network, spanning a full year of operations.
+
+The scraping pipeline used requests, pandas, multi-threaded scraping, which reduced collection time by approximately 90% compared to sequential scraping.
+
+What's Inside?
+Ans: This dataset consists of four interlinked tables:
+
+train_details.csv - 8,992 rows The master list of all trains in the dataset. Contains the train number, name, and service type for every train scraped. The 8,992 trains span 8 categories - Passenger, Express, Superfast, Rajdhani, Shatabdi, Vande Bharat, Garibrath, and Suvidha - covering effectively the full universe of publicly schedulable Indian Railways trains. (train_no,train_name,type_code)
+
+station_full_names.csv - 8,963 rows Metadata for every unique station in the network. Includes the station code, full official name, railway zone, and address. Useful for geographic and zone-level aggregations. (station_name,station_full_name,station_zone,station_address)
+
+combined_schedule.csv - 172,112 rows The complete timetable for all 8,992 trains. Each row represents one train's stop at one station, with scheduled arrival and departure times, arrival day (for multi-day journeys), station sequence number, and distance from the train's origin station. This table is the backbone for route-level analysis and journey duration calculations. (station_no,station_name,distance_from_origin,arrival_day,arrival_time,departure_day,departure_time,train_no)
+
+combined_delay.csv - (~30 million) Millions of rows (~900MB) Contains 365 days of real-world delay records (in minutes) for trains at each station they stop at. This is the largest table by far and is what makes this dataset unique - a full year's worth of granular, station-level delay data across the Indian Railways network. (date,station_no,station_name,delay,train_no)
+
+ATTRIBUTE TYPES:
+Dataset: train_details.csv
+    train_no: Nominal. Although represented by numbers, ID numbers act as names or categories and do not have measurable magnitude.  
+    train_name: String / Nominal. Textual representations of categories or names of things. (e.g. DURG ABKP EXP)
+    type_code: Nominal. Represents distinct categorical states (e.g., Passenger, Express, Rajdhani).   
+Dataset: station_full_names.csv   
+    station_name & station_full_name: String / Nominal. Textual categories used to identify entities.   
+    station_zone: Nominal. Represents a specific categorical region.   
+    station_address: String. A textual attribute consisting of character sequences.   
+combined_schedule.csv   
+    station_no: Ordinal. This acts as a station sequence number, meaning its values have a meaningful order and ranking (e.g., 1st stop, 2nd stop).
+    distance_from_origin: Numeric (Ratio-scaled). A quantitative measurement with an inherent zero-point, allowing you to say one distance is a specific magnitude larger than another.   
+    arrival_day & departure_day: Ordinal or Numeric (Interval-scaled). Days possess a meaningful order and can be measured in equal-sized units.
+    arrival_time & departure_time: Date or Numeric (Interval-scaled). Times can be formatted as specialized date/time strings or treated mathematically as interval-scaled units.
+    train_no & station_name: Nominal and String / Nominal, respectively.
+combined_delay.csv   
+    date: Date. Represents a specific calendar date, which can be stored as a formatted string or converted internally to numeric form.   
+    delay: Numeric (Ratio-scaled). A measurable quantitative value recorded in minutes, possessing a true zero-point (zero minutes of delay).   train_no, station_no, & station_name: Retain their Nominal, Ordinal, and String / Nominal mappings from the previous tables. 
+
+
+Above we have Problem definition, Project description, Datasets details, Information about type of data present in datasets. Now from here on our data warehousing and mining procedure starts.
+
+let's start by basic description of the data:
+for each data set:
+- total number of tuples
+for each attribute:
+- number of non-empty tuples
+- number of missing values
+- number of unique values
+- list of unique values
+- count of each unique value
