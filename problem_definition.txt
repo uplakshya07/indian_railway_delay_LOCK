@@ -1,0 +1,35 @@
+Problem Definition
+
+A Scalable Data Warehousing and Mining Framework for Indian Railways Punctuality Analysis: Uncovering Delay Patterns, High-Risk Routes, and Predictive Insights from Large-Scale Operational Data
+
+Background
+Indian Railways generates massive volumes of operational data daily - scheduled timetables, station master records, and actual arrival/departure logs. While this data holds rich potential for improving service reliability, its scale makes direct, naive analysis computationally impractical for conventional tools. There is a need for an efficient warehousing pipeline that condenses this data into analysis-ready structures, paired with mining techniques that extract actionable punctuality insights.
+
+Problem Statement
+Given large-scale, multi-source railway data (static schedules, station metadata, train classifications, and daily delay logs), design and implement a data warehouse that efficiently aggregates operational records at the appropriate grain, and apply data mining techniques on top of it to:
+1. Uncover temporal and spatial punctuality patterns across trains, stations, and zones
+2. Identify high-risk stations and routes that disproportionately contribute to delays
+3. Build predictive models to estimate delay likelihood/magnitude for a given train-station-time combination
+
+The project must address the practical constraint of data volume (30M+ raw records) through sound aggregation and sampling strategies that preserve statistical validity, rather than through naive scale reduction that would compromise data quality or generalizability.
+
+Objectives
+1. Data Integration & Warehousing - Consolidate schedule, station, train-type, and delay data into a star-schema warehouse (Fact_Delay_Summary, Fact_Schedule_Stop, Dim_Train, Dim_Station, Dim_Date), aggregated at the (train, station, time-period) grain to keep the warehouse queryable at scale.
+2. Punctuality Pattern Mining - Analyze delay trends by day-of-week, month/season, train type, and distance-from-origin using the aggregated fact table.
+3. High-Risk Route/Station Identification - Rank stations and zones by average delay contribution and delay propagation behavior along routes.
+4. Delay Prediction - Train classification/regression models (on a statistically stratified sample of row-level data) to predict delay category or magnitude from features like train type, station sequence position, day-of-week, and distance traveled.
+5. Scalability Demonstration - Show that the pipeline (DuckDB/Polars-based aggregation + stratified sampling) can process 30M+ records efficiently on standard hardware, making the methodology itself a contribution, not just the findings.
+
+Scope
+- In scope: Aggregate-level pattern mining across the full dataset; predictive modeling on a representative stratified sample; warehouse design and ETL at appropriate grain.
+- Out of scope: Row-level real-time processing; live/streaming delay prediction; causal inference (weather, track conditions) - external data not available in current sources.
+
+Expected Outcome
+A working SQLite/DuckDB-based warehouse, a set of mined punctuality insights (with visualizations) identifying high-risk stations/routes/train-types, and a delay-prediction model with evaluated accuracy - all built with a documented, defensible approach for handling large-scale data under academic resource constraints.
+
+
+
+
+
+
+Indian Railways Punctuality & Network Delay Dynamics Analysis

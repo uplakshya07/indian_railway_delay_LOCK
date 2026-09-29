@@ -25,6 +25,8 @@ combined_schedule.csv - 172,112 rows The complete timetable for all 8,992 trains
 
 combined_delay.csv - (~30 million) Millions of rows (~900MB) Contains 365 days of real-world delay records (in minutes) for trains at each station they stop at. This is the largest table by far and is what makes this dataset unique - a full year's worth of granular, station-level delay data across the Indian Railways network. (date,station_no,station_name,delay,train_no)
 
+30/09/2026
+
 ATTRIBUTE TYPES:
 Dataset: train_details.csv
     train_no: Nominal. Although represented by numbers, ID numbers act as names or categories and do not have measurable magnitude.  
