@@ -1,0 +1,5 @@
+Relationship,Parent Key,Child Key,Unmatched Child Keys,Status
+train_details → combined_schedule,train_no,train_no,0,PASS
+train_details → combined_delay,train_no,train_no,0,PASS
+station_full_names → combined_schedule,station_name,station_name,1,CHECK
+station_full_names → combined_delay,station_name,station_name,63,CHECK

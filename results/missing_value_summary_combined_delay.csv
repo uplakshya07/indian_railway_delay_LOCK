@@ -1,0 +1,6 @@
+Attribute,Total Rows,Missing,Non-Missing,Missing %
+date,38428703,0,38428703,0.0
+station_no,38428703,0,38428703,0.0
+station_name,38428703,0,38428703,0.0
+delay,38428703,1874271,36554432,4.8773
+train_no,38428703,0,38428703,0.0

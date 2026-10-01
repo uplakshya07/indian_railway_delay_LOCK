@@ -1,0 +1,16 @@
+Dataset,Attribute,Total Rows,Non-Missing,Missing,Missing %,Unique Values
+train_details,train_no,8992,8992,0,0.0,8720
+train_details,train_name,8992,8992,0,0.0,6455
+train_details,type_code,8992,8992,0,0.0,8
+station_full_names,station_name,8963,8963,0,0.0,8963
+station_full_names,station_full_name,8963,8963,0,0.0,8940
+station_full_names,station_zone,8963,8963,0,0.0,19
+station_full_names,station_address,8963,8869,94,1.0488,6996
+combined_schedule,station_no,172112,172112,0,0.0,119
+combined_schedule,station_name,172112,172112,0,0.0,8629
+combined_schedule,distance_from_origin,172112,172112,0,0.0,3241
+combined_schedule,arrival_day,172112,172112,0,0.0,4
+combined_schedule,arrival_time,172112,163439,8673,5.0392,1440
+combined_schedule,departure_day,172112,172112,0,0.0,4
+combined_schedule,departure_time,172112,163439,8673,5.0392,1440
+combined_schedule,train_no,172112,172112,0,0.0,8673

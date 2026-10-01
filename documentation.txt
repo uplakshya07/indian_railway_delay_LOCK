@@ -58,3 +58,237 @@ for each attribute:
 - number of unique values
 - list of unique values
 - count of each unique value
+
+01/10/2026
+
+RAW CSV DATA [done: till 29/10/2026]
+     ↓
+Data Understanding [done]
+     ↓
+Data Cleaning / ETL
+     ↓
+        ┌─────────────────────┐
+        │   DATA WAREHOUSE    │
+        │                     │
+        │ Dimensions          │
+        │      +              │
+        │ Fact Table          │
+        └─────────┬───────────┘
+                  ↓
+          OLAP Analysis
+                  ↓
+       ┌──────────┼───────────┐
+       ↓          ↓           ↓
+ Punctuality   Bottleneck   Temporal
+ Analysis      Analysis     Analysis
+       │          │           │
+       └──────────┼───────────┘
+                  ↓
+             Data Mining
+                  ↓
+          Delay Prediction
+                  ↓
+          Dashboard / Report
+
+DATA UNDERSTANDING — DATA QUALITY AND RELATIONSHIP ANALYSIS
+
+1. Duplicate Record Analysis
+----------------------------
+
+Complete duplicate records were checked across all four datasets.
+
+Results:
+- train_details.csv: 8,992 rows; 0 complete duplicate records detected.
+- station_full_names.csv: 8,963 rows; 0 complete duplicate records detected.
+- combined_schedule.csv: 172,112 rows; 0 complete duplicate records detected.
+- combined_delay.csv: 38,428,703 rows; no complete duplicates were detected during the chunk-wise scan.
+
+Note:
+The duplicate analysis for combined_delay.csv was performed in chunks because of its large size. Therefore, the result does not by itself prove that duplicate rows do not exist across chunk boundaries. A global duplicate verification should be performed during the later key-resolution stage.
+
+Conclusion:
+No complete duplicate records were detected in the smaller datasets. The delay dataset also showed no duplicates in the chunk-wise scan, but a final global verification is required before the warehouse is finalized.
+
+
+2. Missing-Value Analysis
+-------------------------
+
+Missing values were analyzed for all datasets.
+
+train_details.csv:
+- No missing values were detected.
+
+station_full_names.csv:
+- station_address: 94 missing values.
+- station_name: no missing values.
+- Other analyzed attributes: no missing values.
+
+combined_schedule.csv:
+- arrival_time: 8,673 missing values, approximately 5.04%.
+- departure_time: 8,673 missing values, approximately 5.04%.
+- Other analyzed attributes: no missing values.
+
+combined_delay.csv:
+- delay: 1,874,271 missing values out of 38,428,703 records, approximately 4.88%.
+- Non-missing delay values: 36,554,432.
+
+Important Observation:
+The missing delay values are not uniformly distributed. Some stations have extremely high or complete missingness. Examples include:
+- BNDE: 104/104 missing.
+- BSCN: 52/52 missing.
+- HHAL: 261/261 missing.
+- AJLE: 365/365 missing.
+- STLA: 365/365 missing.
+- MLYC: 728/730 missing.
+- KCVL: 9,107/9,281 missing.
+
+Date-level analysis also showed periods of increased missingness, particularly around February 2025. For example:
+- 2025-02-25: 14,227/104,672 missing (13.59%).
+- 2025-02-24: 13,926/105,151 missing (13.24%).
+- 2025-02-26: 13,648/104,458 missing (13.07%).
+- 2025-02-18: 13,049/104,688 missing (12.46%).
+- 2025-02-19: 12,977/104,513 missing (12.42%).
+
+Conclusion:
+Missing delay values should not be automatically replaced with zero. The missingness appears to have a structured pattern and should be investigated during ETL and key-resolution stages before deciding how these records will be represented in the data warehouse.
+
+
+3. Key Uniqueness Analysis
+--------------------------
+
+train_details.csv contains:
+- 8,992 total rows.
+- 8,720 unique train_no values.
+
+Therefore, train_no is not unique in the raw train master.
+
+Further investigation showed that some duplicate train numbers are associated with different type_code values while often retaining the same train name. Examples include:
+- 1042: SNSI DR SPECIAL EXP-TRAINS / SNSI DR SPECIAL PRM-TRAINS.
+- 1265: MML ABKP SPL PRM-TRAINS / MML ABKP SPL EXP-TRAINS.
+- 2003: NDLS SWARNA SHATABDI SHT-TRAINS / NDLS SWARNA SHATABDI PRM-TRAINS.
+
+Grouping duplicate train_no values showed cases where:
+- row_count = 2
+- train_names = 1
+- type_codes = 2
+
+Conclusion:
+train_no alone should not yet be assumed to be the primary key of the train dimension. The relationship between train_no, type_code, train_name, schedule records, and delay records must be investigated before selecting the final warehouse key.
+
+
+4. Schedule Structure Analysis
+------------------------------
+
+combined_schedule.csv contains:
+- 172,112 rows.
+- 119 unique station_no values.
+- 8,629 unique station_name values.
+
+Interpretation:
+station_no does not represent a globally unique physical station. Instead, it represents the ordinal position of a station within a train's route or journey.
+
+station_name represents the physical station.
+
+Conclusion:
+The warehouse should not use station_no as the station dimension key. The distinction between route-stop sequence and physical station identity must be preserved in the warehouse design.
+
+
+5. Referential Integrity Analysis
+---------------------------------
+
+Train Master → Schedule:
+- 8,673 unique train numbers are present in combined_schedule.csv.
+- 0 schedule train numbers were unmatched in train_details.csv.
+- 47 train numbers present in train_details.csv do not appear in combined_schedule.csv.
+
+Train Master → Delay:
+- 7,033 unique train numbers are present in combined_delay.csv.
+- 0 delay train numbers were unmatched in train_details.csv.
+- 1,687 train numbers present in train_details.csv do not appear in combined_delay.csv.
+
+Station Master → Schedule:
+- 1 schedule station was not found in station_full_names.csv.
+- 335 stations in station_full_names.csv do not appear in combined_schedule.csv.
+
+Station Master → Delay:
+- 63 delay stations were not found in station_full_names.csv.
+- 799 stations in station_full_names.csv do not appear in combined_delay.csv.
+
+Conclusion:
+Most foreign-key relationships are consistent, but the unmatched station values require investigation. Possible explanations include naming or formatting differences, renamed stations, missing master records, or genuine data-quality issues. These records should not be deleted automatically.
+
+
+6. Delay Fact Grain Analysis
+----------------------------
+
+A candidate natural key was defined as:
+
+(date, train_no, station_no)
+
+This represents one observed delay for:
+- one train,
+- on one date,
+- at one route-stop position.
+
+The candidate combination was checked for duplicate occurrences within the processed chunks, and no duplicate combinations were detected during the preliminary chunk-wise analysis.
+
+However, because combined_delay.csv contains 38.4 million records, global uniqueness across all records still needs to be verified.
+
+Conclusion:
+(date, train_no, station_no) is a strong candidate for the natural grain of the delay fact table, but it should not be finalized until global uniqueness has been verified.
+
+
+7. Overall Findings
+-------------------
+
+The Data Quality and Relationship Analysis established the following:
+
+1. No complete duplicates were detected in train_details.csv, station_full_names.csv, or combined_schedule.csv.
+2. No complete duplicates were detected in the chunk-wise scan of combined_delay.csv, but global verification is still required.
+3. Missing values exist in station_address, arrival_time, departure_time, and delay.
+4. Delay missingness is structured by station and date rather than being uniformly distributed.
+5. train_no is not unique in the train master and therefore cannot yet be treated as the final train dimension key.
+6. station_no represents route-stop order rather than physical station identity.
+7. Referential integrity is generally strong, but unmatched station values require investigation.
+8. (date, train_no, station_no) is a strong candidate for the delay fact-table grain, pending global uniqueness verification.
+
+
+8. Conclusion
+-------------
+
+The datasets are sufficiently structured to proceed toward ETL and data warehouse design, but several key issues must be resolved before finalizing the warehouse schema.
+
+The most important unresolved issues are:
+- resolving duplicate train_no values,
+- investigating unmatched schedule and delay stations,
+- globally verifying the uniqueness of (date, train_no, station_no),
+- determining the final keys for train and station dimensions, and
+- deciding how structured missing delay values will be represented during ETL.
+
+These issues should be handled in a separate Key Resolution stage rather than being silently corrected during the initial data-understanding phase.
+
+
+9. Next Stage
+-------------
+
+DATA UNDERSTANDING
+        ↓
+DATA QUALITY & RELATIONSHIP ANALYSIS
+        ↓
+KEY RESOLUTION
+    ├── Resolve duplicate train_no
+    ├── Investigate unmatched stations
+    ├── Verify global natural-key uniqueness
+    └── Determine final fact-table grain
+        ↓
+ETL / DATA CLEANING
+        ↓
+DATA WAREHOUSE DESIGN
+        ↓
+OLAP / ANALYSIS
+        ↓
+DATA MINING
+        ↓
+DELAY PREDICTION
+        ↓
+DASHBOARD / REPORT
