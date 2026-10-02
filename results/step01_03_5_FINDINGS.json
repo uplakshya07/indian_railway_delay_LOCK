@@ -1,0 +1,24 @@
+{
+    "A": {
+        "raw_rows": 8992,
+        "dup_train_nos": 272,
+        "dup_with_different_names": 0,
+        "resolved_rows": 8720,
+        "resolved_unique_train_no": 8720,
+        "needs_manual_review": 4,
+        "rule": "primary_type_code = the single non-PRM type; PRM kept as is_premium_special flag",
+        "remaining_reviews_after_manual": 0
+    },
+    "B_C": {
+        "missing_sched_count": 1,
+        "missing_delay_count": 63,
+        "final_station_dim_count": 9027
+    },
+    "D": {
+        "duplicate_grain_combinations": 0
+    },
+    "E": {
+        "fact_grain": "(date, train_no, station_no)",
+        "is_globally_unique": true
+    }
+}

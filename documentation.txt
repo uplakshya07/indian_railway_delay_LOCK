@@ -59,6 +59,10 @@ for each attribute:
 - list of unique values
 - count of each unique value
 
+Output files:
+- analysis/step01_01_data_quality.ipynb
+
+
 01/10/2026
 
 RAW CSV DATA [done: till 29/10/2026]
@@ -258,6 +262,16 @@ The Data Quality and Relationship Analysis established the following:
 
 The datasets are sufficiently structured to proceed toward ETL and data warehouse design, but several key issues must be resolved before finalizing the warehouse schema.
 
+Output files:
+- analysis/step01_02_data_quality.ipynb
+- results/duplicate_summary_small_datasets.csv
+- results/duplicate_train_numbers.csv
+- results/missing_delay_by_date.csv
+- results/missing_delay_by_station.csv
+- results/missing_value_summary_combined_delay.csv
+- results/missing_value_summary_small_datasets.csv
+- results/relationship_summary.csv
+
 The most important unresolved issues are:
 - resolving duplicate train_no values,
 - investigating unmatched schedule and delay stations,
@@ -270,6 +284,19 @@ These issues should be handled in a separate Key Resolution stage rather than be
 
 9. Next Stage
 -------------
+STEP 1.5
+│
+├── A. Resolve duplicate train_no
+│
+├── B. Identify the 1 unmatched schedule station
+│
+├── C. Identify the 63 unmatched delay stations
+│
+├── D. Globally verify
+│      (date + train_no + station_no)
+│
+└── E. Determine the exact grain of FACT_DELAY
+
 
 DATA UNDERSTANDING
         ↓
@@ -292,3 +319,68 @@ DATA MINING
 DELAY PREDICTION
         ↓
 DASHBOARD / REPORT
+
+02/10/2026
+
+KEY RESOLUTION (STEP 1.5) — RESOLVING STRUCTURAL AMBIGUITIES
+
+Following the Data Quality and Relationship Analysis, a dedicated Key Resolution stage was executed using DuckDB's out-of-core processing capabilities to handle the massive datasets efficiently without chunk-boundary issues.
+
+1. Resolve Duplicate train_no
+
+Initial Discovery: 272 duplicate train_no values were detected. Analysis revealed that these duplicates often shared the same train_name but possessed different type_code values (e.g., a base service type coupled with an overlay tag like 'PRM-TRAINS').
+
+Resolution Rule Applied: The base service type (e.g., EXP, SF, SHT) was retained as the primary_type_code, while the PRM-TRAINS designation was converted into a boolean flag (is_premium_special).
+
+Manual Review Completed: Four specific "NAMO BHARAT RAPID RAIL" rows required manual intervention. These were manually updated via SQL to the T18-TRAINS primary type code, successfully finalizing the 8,720-row train dimension (dim_train_resolved) without dropping valid records.
+
+2. Investigate Unmatched Stations
+
+Initial Discovery: Referential integrity checks flagged 1 schedule station and 63 delay stations that did not exist in the master station_full_names.csv file.
+
+Resolution Applied: Rather than dropping these operational records or breaking the OLAP architecture, these missing station codes were isolated via NOT IN queries and appended to the final station dimension (dim_station_resolved). Placeholder metadata values ("UNKNOWN") were assigned for the full name, zone, and address fields to maintain referential integrity without discarding valuable data.
+
+3. Globally Verify Natural-Key Uniqueness
+
+Initial Discovery: The preliminary chunk-wise scan of the ~30 million row delay dataset could not definitively rule out duplicates across chunk boundaries.
+
+Resolution Applied: Utilizing DuckDB's dynamic memory management, an out-of-core global grouping query evaluated all 38,428,703 rows in a single pass to test the combination of (date, train_no, station_no) for duplicate instances.
+
+4. Determine Final Fact-Table Grain
+
+Resolution Applied: The exact natural grain for FACT_DELAY was evaluated and defined as:
+(date, train_no, station_no)
+
+This explicitly represents one observed delay for one train, at one sequential route-stop position, on one specific calendar date. By identifying the total duplicate combinations globally, an aggregation rule (such as taking the MAX(delay)) was established for the upcoming ETL pipeline to enforce this structural uniqueness and finalize the exact grain of the fact table.
+
+10. Conclusion and Next Stage
+
+Step 1.5 is officially concluded. All structural ambiguities regarding dimension keys and referential integrity have been addressed, and findings have been exported into step01_03_5_FINDINGS.json.
+
+Output files:
+- analysis/step01_03_5_key_resolutions.ipynb
+- results/dim_station_resolved.csv
+- results/dim_train_resolved.csv
+- results/step01_03_5.duckdb
+- results/step01_03_5.duckdb.wal
+- results/step01_03_5_A_duplicate_type_combos.csv
+- results/step01_03_5_A_train_manual_review.csv
+- results/step01_03_5_FINDINGS.json
+
+The project is now fully cleared to transition out of the Data Understanding phase and into the ETL pipeline and Data Warehouse Design phase to build out the final star schema for multidimensional OLAP analysis.
+
+NEXT STAGE:
+
+KEY RESOLUTION [done]
+↓
+ETL / DATA CLEANING
+├── Apply missing value rules (e.g., station_address, arrival_time)
+├── Smooth noisy delay values / handle extreme outliers
+└── Execute aggregation rules for duplicate fact-table grains
+↓
+DATA WAREHOUSE DESIGN
+├── Build Star / Snowflake Schema
+├── Link FACT_DELAY to dim_train_resolved
+└── Link FACT_DELAY to dim_station_resolved
+↓
+OLAP / ANALYSIS

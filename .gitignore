@@ -1,2 +1,17 @@
+# ignore all orginal kaggle datasets
 data_sets/
+# ignore the dataset that I had created to locally view from original datasets selected rows
 data_sets/selected
+
+# ignore the datasets that has been resolved to be used in further DWDM project's analysis part
+results/dim_station_resolved.csv
+results/dim_train_resolved.csv
+
+# ignore duckdb files as they contain all or some above ignored datasets in sql table form
+results/step01_03_5.duckdb
+results/step01_03_5.duckdb.wal
+
+# also ignore duckdb temp folder
+results/duckdb_tmp/
+
+# csv files that will be pushed are the analysis result files not the dataset files on which the analysis is done or will be done in future
