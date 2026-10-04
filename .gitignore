@@ -6,6 +6,7 @@ data_sets/selected
 # ignore the datasets that has been resolved to be used in further DWDM project's analysis part
 results/dim_station_resolved.csv
 results/dim_train_resolved.csv
+results/combined_schedule_imputed.csv
 
 # ignore duckdb files as they contain all or some above ignored datasets in sql table form
 results/step01_03_5.duckdb

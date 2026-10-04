@@ -1,0 +1,23 @@
+Further to my earlier mail on the evaluation dates, I am sharing the work completed till Evaluation 1 (3 October 2026) of my project "Indian Railways Punctuality & Network Delay Dynamics Analysis", and my plan up to Evaluation 2 (9 November 2026).
+
+DATASET
+I am using the Indian Railways Delay Dataset from Kaggle (https://www.kaggle.com/datasets/rxydenxd/indian-railways-delay-dataset). It covers one year of operations (8 Feb 2025 to 7 Feb 2026) in four linked tables: train details (about 9,000 trains across 8 service categories), station master (about 9,000 stations with railway zone), the full timetable schedule (172,112 stops), and daily station-level delay records in minutes (38.4 million rows).
+
+WORK DONE SO FAR (Data Understanding and Preprocessing)
+1. Profiled all four tables: record counts, missing and unique values, value distributions and attribute types.
+2. Data quality checks found the following:
+   - About 4.9% of delay values are missing. The gaps are structured, not random: some stations have no delay data for the whole year, and a few days in February 2025 have 12 to 13% missing delays.
+   - train_no is not unique in the train master (8,992 rows but only 8,720 unique numbers).
+   - 64 stations in the schedule and delay data do not exist in the station master.
+3. Key resolution: I resolved the duplicate train numbers, which came from premium-service overlay tags, into one clean train dimension of 8,720 trains. The unmatched stations were added to the station dimension so no records were lost. I also verified, across all 38.4 million rows using DuckDB, that (date, train, stop sequence) uniquely identifies a delay record, and defined it as the grain of the delay fact table.
+
+The notebooks and cleaned dimension tables are ready.
+Further Phases (Leading to Evaluation 2 on Nov 9) With the data conceptually cleaned and verified, the project will follow this roadmap to completion:
+
+Phase 1: Final ETL & Data Cleaning: This covers rules for missing station addresses and schedule times, handling of structurally missing delays, and smoothing of outlier delay values.
+
+Phase 2: Data Warehouse & OLAP: Construct  star or snowflake schema and the multidimensional data cubes to interactively analyze delays across geographical zones and train categories (punctuality and temporal patterns)
+
+Phase 3: Data Mining & Model Construction: Map network bottlenecks using graph mining and apply numeric prediction (regression) to forecast anticipated train delays.
+
+Phase 4: Pattern Evaluation & Presentation: Evaluate prediction accuracy using standard error metrics (MSE/RMSE) against an independent testing dataset, and design visual dashboards to present the findings.

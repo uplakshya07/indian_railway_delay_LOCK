@@ -1,0 +1,94 @@
+Objectives: 
+ETL / DATA CLEANING
+├── Apply missing value rules (for missing station_address, arrival_time, departure time and delay) [accomplished]
+├── Smooth noisy delay values / handle extreme outliers
+└── Execute aggregation rules for duplicate fact-table (data_sets/combined_delay.csv) grains [no need because global uniqueness verified in previous stage for fact-table grain]
+
+Available datasets:
+
+results/dim_station_resolved.csv
+results/dim_train_resolved.csv
+data_sets/combined_delay.csv
+data_sets/combined_schedule.csv
+
+Missing values (only those attributes are mentioned which have missing values):
+results/dim_station_resolved.csv:
+    - 94 missing station_address [resolved]
+data_sets/combined_delay.csv
+    - delay: 1,874,271 missing values out of 38,428,703 records, approximately 4.88%.
+data_sets/combined_schedule.csv:
+    - arrival_time: 8,673 missing values [resolved]
+    - departure_time: 8,673 missing values [resolved]
+
+Notes:
+Some Questions:
+1. Is it okay to fill missing station address as UNKNOWN? I am asking this because this has been done before on results/dim_station_resolved.csv:
+    - Initial Discovery: Referential integrity checks flagged 1 schedule station and 63 delay stations that did not exist in the master station_full_names.csv file.
+
+    - Resolution Applied: Rather than dropping these operational records or breaking the OLAP architecture, these missing station codes were isolated via NOT IN queries and appended to the final station dimension (dim_station_resolved). Placeholder metadata values ("UNKNOWN") were assigned for the full name, zone, and address fields to maintain referential integrity without discarding valuable data.
+
+2. what preprocessing would be required other than mentioned above?
+
+Based on the progress detailed in "documentation.txt" and the goals outlined in "objectives.txt", here is the structured plan to execute today's ETL and data cleaning phase.
+
+### Answers to Your Preprocessing Questions
+
+**1. Filling missing station addresses with "UNKNOWN"**
+Yes, filling the 94 missing `station_address` values in `results/dim_station_resolved.csv` with "UNKNOWN" is perfectly acceptable. You have already established this precedent during the Key Resolution stage by using "UNKNOWN" for unmatched schedule and delay stations to maintain referential integrity without discarding valuable data. Using a global constant to fill missing nominal data is a standard, widely accepted data cleaning technique in the knowledge discovery process.
+
+**2. Additional Preprocessing Requirements**
+Beyond the three tasks listed in "objectives.txt", you must also implement the following preprocessing steps to prepare for the data mining phase:
+
+* **Structured Delay Imputation:** You have 1,874,271 missing `delay` values (approximately 4.88%) in `data_sets/combined_delay.csv`. Because your earlier analysis in "documentation.txt" proved this missingness is structurally tied to specific stations and dates rather than being random, simply filling them with zero will severely skew your predictive models. You will need a time-series interpolation strategy (such as forward-filling the delay from the train's previous station) or a rule to drop these specific rows if they represent cancelled trains.
+
+
+* **Schedule Time Resolution:** There are 8,673 missing `arrival_time` and `departure_time` values in `data_sets/combined_schedule.csv`. You must establish a programmatic rule for these interval-scaled attributes (e.g., estimating time based on the distance from the origin and average train speed) or explicitly ignore them if your target variable relies exclusively on the continuous `delay` column.
+
+
+* **Delta Transformations:** To improve time-series forecasting, you should calculate the difference in delay between the current station and the preceding station (time-shifted delta), as this is often more informative for mapping congestion trends than the raw delay value alone.
+
+
+* **Final Data Integration:** Once cleaning is complete, you must physically execute the SQL joins linking your 30-million-row fact table to `results/dim_train_resolved.csv` and `results/dim_station_resolved.csv` to construct your final schema for OLAP analysis.
+
+
+
+### Execution Plan for Today's Objectives
+
+**Objective 1: Apply Missing Value Rules**
+
+[DONE]: * **Action:** Update `results/dim_station_resolved.csv` to explicitly replace the 94 null `station_address` fields with the string "UNKNOWN".
+
+
+[DONE]: * **Action:** Apply your chosen imputation or deletion rule to the 8,673 missing arrival and departure times in `data_sets/combined_schedule.csv`. 
+
+* **Action:** 
+
+**Objective 2: Smooth Noisy Delay Values and Handle Outliers**
+
+* **Action:** Calculate the mean and standard deviation for the `delay` column in `data_sets/combined_delay.csv`. Programmatically flag values that fall far outside of two standard deviations.
+
+
+* **Action:** Separate "garbage" from "treasure". Typographical or transmission errors (e.g., a physically impossible delay of 1,000,000 minutes) should be smoothed using binning or regression. Conversely, genuinely massive delays at high-risk stations are real-world exceptions; these must be preserved intact as they are critical for your bottleneck identification objective.
+
+
+
+how do we determine arrival or departure delay is used in delay field of the combined_delay dataset?
+
+context: 
+combined_delay.csv:
+- delay: 1,874,271 missing values out of 38,428,703 records, approximately 4.88%.
+- Non-missing delay values: 36,554,432.
+
+my intuition is that :
+1. if we can find at least one origin station of a train at which the delay is non-empty or non-zero, then delay is departure delay at origin. 
+2. if we can find at least one destination station of a train at which the delay is non-zero or non-empty, then delay at destination is arrival delay. 
+
+if both hypothesis are true then we will assume that departure delay is recorded at source and at intermediate and destination stations arrival delay is recorded.
+
+if hypothesis 1 is true and hypothesis 2 is false then delay is departure delay for each station and train.
+
+if hypothesis 1 is false and hypothesis 2 is true then delay is arrival delay for each station and train.
+
+if both hypothesis are false then we will assume arrival delay at each station, plus definitely for destination it is  it is departure delay. in this case there will be data loss at origin and destination.
+
+keep in mind the path format we're using till now.

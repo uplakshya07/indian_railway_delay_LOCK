@@ -1,0 +1,12 @@
+{
+    "delay_field_resolution": {
+        "hypothesis_tested": "Composite Context Switch",
+        "delayed_at_origin_count": 1038047,
+        "delayed_at_destination_count": 1044006,
+        "conclusion": "Hypothesis confirmed. The delay field is context-dependent.",
+        "etl_rule": {
+            "station_no_1": "Strictly Departure Delay",
+            "station_no_greater_than_1": "Strictly Arrival Delay"
+        }
+    }
+}

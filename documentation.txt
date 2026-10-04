@@ -25,6 +25,10 @@ combined_schedule.csv - 172,112 rows The complete timetable for all 8,992 trains
 
 combined_delay.csv - (~30 million) Millions of rows (~900MB) Contains 365 days of real-world delay records (in minutes) for trains at each station they stop at. This is the largest table by far and is what makes this dataset unique - a full year's worth of granular, station-level delay data across the Indian Railways network. (date,station_no,station_name,delay,train_no)
 
+The combined_delay.csv file provides a single column named delay, which the author simply defines as the delay (in minutes) that a train experienced at a specific station stop.
+
+Note: In standard Indian Railways tracking systems (like NTES, which is typically used for this kind of scraping), "delay" generally refers to the arrival delay at intermediate stations and the departure delay at the train's originating station. We will resolve it during ETL and cleaning stage.
+
 30/09/2026
 
 ATTRIBUTE TYPES:
@@ -49,7 +53,7 @@ combined_delay.csv
 
 Above we have Problem definition, Project description, Datasets details, Information about type of data present in datasets. Now from here on our data warehousing and mining procedure starts.
 
-let's start by basic description of the data:
+Basic description of the data:
 for each data set:
 - total number of tuples
 for each attribute:
@@ -284,7 +288,7 @@ These issues should be handled in a separate Key Resolution stage rather than be
 
 9. Next Stage
 -------------
-STEP 1.5
+STEP 1.3 
 │
 ├── A. Resolve duplicate train_no
 │
@@ -322,7 +326,7 @@ DASHBOARD / REPORT
 
 02/10/2026
 
-KEY RESOLUTION (STEP 1.5) — RESOLVING STRUCTURAL AMBIGUITIES
+5 KEY RESOLUTIONS (STEP 1.3) — RESOLVING STRUCTURAL AMBIGUITIES
 
 Following the Data Quality and Relationship Analysis, a dedicated Key Resolution stage was executed using DuckDB's out-of-core processing capabilities to handle the massive datasets efficiently without chunk-boundary issues.
 
@@ -351,11 +355,11 @@ Resolution Applied: Utilizing DuckDB's dynamic memory management, an out-of-core
 Resolution Applied: The exact natural grain for FACT_DELAY was evaluated and defined as:
 (date, train_no, station_no)
 
-This explicitly represents one observed delay for one train, at one sequential route-stop position, on one specific calendar date. By identifying the total duplicate combinations globally, an aggregation rule (such as taking the MAX(delay)) was established for the upcoming ETL pipeline to enforce this structural uniqueness and finalize the exact grain of the fact table.
+This explicitly represents one observed delay for one train, at one sequential route-stop position, on one specific calendar date. By identifying the total duplicate combinations globally.
 
 10. Conclusion and Next Stage
 
-Step 1.5 is officially concluded. All structural ambiguities regarding dimension keys and referential integrity have been addressed, and findings have been exported into step01_03_5_FINDINGS.json.
+Step 1.3 is officially concluded. All structural ambiguities regarding dimension keys and referential integrity have been addressed, and findings have been exported into step01_03_5_FINDINGS.json.
 
 Output files:
 - analysis/step01_03_5_key_resolutions.ipynb
@@ -374,13 +378,70 @@ NEXT STAGE:
 KEY RESOLUTION [done]
 ↓
 ETL / DATA CLEANING
-├── Apply missing value rules (e.g., station_address, arrival_time)
-├── Smooth noisy delay values / handle extreme outliers
-└── Execute aggregation rules for duplicate fact-table grains
+├── Apply missing value rules (for missing station_address, arrival_time, departure time and delay)
+└── Smooth noisy delay values / handle extreme outliers
 ↓
 DATA WAREHOUSE DESIGN
 ├── Build Star / Snowflake Schema
 ├── Link FACT_DELAY to dim_train_resolved
 └── Link FACT_DELAY to dim_station_resolved
 ↓
+OLAP / ANALYSIS
+
+04/10/2026
+
+ETL / DATA CLEANING (STEP 2.1) — MISSING VALUE IMPUTATION AND FIELD RESOLUTION
+
+Following the Key Resolution stage, the ETL and Data Cleaning phase commenced, focusing on missing value imputation and field verification using Pandas and DuckDB out-of-core processing. To preserve data integrity, the original raw datasets in the `data_sets/` directory remained completely unmodified. All cleaning scripts were executed via Jupyter notebooks stored in the `analysis/` directory, and the transformed outputs were routed exclusively to the `results/` directory.
+
+1. Dimension Table Cleaning: Missing Station Addresses
+------------------------------------------------------
+*   Technique Used: Application of a Global Constant for Nominal Attributes.
+*   Before: The resolved station dimension (`dim_station_resolved.csv`) contained 94 missing `station_address` values.
+*   Resolution Applied: A Pandas script replaced these null fields with the explicit global constant "UNKNOWN".
+*   After/Result: 0 remaining null addresses. Referential integrity is strictly maintained for the OLAP warehouse without discarding any dimensional records. The output was saved as `results/dim_station_resolved.csv`.
+
+2. Schedule Fact Cleaning: Missing Arrival & Departure Times
+------------------------------------------------------------
+*   Technique Used: Logical Imputation (Zero-Halt Rule) for Interval-Scaled Attributes.
+*   Before: The `combined_schedule.csv` dataset had 8,673 missing `arrival_time` and 8,673 missing `departure_time` values. A verification script proved these missing states were structural and intentional: missing arrivals occurred exactly and only at origin stations (`station_no = 1`), while missing departures occurred exactly and only at destination stations.
+*   Resolution Applied: The Zero-Halt imputation rule was applied using Pandas. Missing origin arrival times were filled with their scheduled departure time, and missing destination departure times were filled with their scheduled arrival time.
+*   After/Result: 0 remaining missing schedule times. This resolves the missing data while preserving the continuous numeric sequences required for time-series predictive models. The cleaned dataset was saved as `results/combined_schedule_imputed.csv`.
+
+3. Delay Field Context Resolution (important for handling missing delay values)
+---------------------------------
+*   Technique Used: Contextual Hypothesis Testing via Out-of-Core Processing.
+*   Before: The exact operational definition of the `delay` column in the ~30 million row `combined_delay.csv` dataset was ambiguous (whether it represented arrival delay or departure delay).
+    Our defined composite hypothesis posits that the delay field is a context-dependent metric that switches meaning based on the station's position in the route. Specifically, it assumes that:
+        - Departure Delay is recorded exclusively at the train's source or origin station.
+        - Arrival Delay is recorded at all subsequent intermediate and destination stations.
+
+*   Resolution Applied: A hypothesis was formulated to test delays at route boundaries (origin vs. destination). A DuckDB SQL query, explicitly filtering out null values, evaluated all 38 million records and yielded 1,038,047 non-zero delays at origin stations and 1,044,006 non-zero delays at destination stations.
+*   After/Result: The composite context switch hypothesis was confirmed. The `delay` field is context-dependent: it strictly records Departure Delay at the source station (`station_no = 1`) and Arrival Delay at all intermediate and destination stations (`station_no > 1`). These findings establish the foundational ETL rules for numeric modeling and were successfully exported to `results/step02_01_ETL_FINDINGS.json`.
+
+Conclusion and Next Stage
+-------------------------
+Step 2.1 is successfully completed. The initial missing value rules for the dimension and schedule tables have been executed, and the exact operational context of the delay metric has been mathematically defined. The project is now ready to handle the remaining numeric anomalies in the massive delay fact table[cite: 12]. 
+
+Output files:
+- analysis/step02_01_ETL_cleaning.ipynb
+- results/dim_station_resolved.csv (updated)
+- results/combined_schedule_imputed.csv
+- results/step02_01_ETL_FINDINGS.json
+
+NEXT STAGE:
+
+KEY RESOLUTION [done]
+        ↓
+ETL / DATA CLEANING 
+    ├── Apply missing value rules (station_address, schedule times) [done]
+    ├── Resolve delay field context [done]
+    ├── Handle 1.87 million missing delay values (Spatiotemporal Imputation)
+    └── Smooth noisy delay values / handle extreme numeric outliers
+        ↓
+DATA WAREHOUSE DESIGN
+    ├── Build Star / Snowflake Schema
+    ├── Link FACT_DELAY to dim_train_resolved
+    └── Link FACT_DELAY to dim_station_resolved
+        ↓
 OLAP / ANALYSIS
