@@ -1,3 +1,5 @@
+04/10/2026
+
 Objectives: 
 ETL / DATA CLEANING
 ├── Apply missing value rules (for missing station_address, arrival_time, departure time and delay) [accomplished]
@@ -92,3 +94,15 @@ if hypothesis 1 is false and hypothesis 2 is true then delay is arrival delay fo
 if both hypothesis are false then we will assume arrival delay at each station, plus definitely for destination it is  it is departure delay. in this case there will be data loss at origin and destination.
 
 keep in mind the path format we're using till now.
+
+05/10/2026
+
+Objective: Handle 1.87 million missing delay values (done)
+
+Because we cannot use forward-filling for origin stations (there is no previous station to pull data from), we have to handle missing origin delays differently than mid-route gaps. Here is how we should adjust the imputation strategy based on your correction:
+
+For Origin Stations (station_no = 1): Use a class-specific central tendency. Replace the missing departure delay with the median departure delay calculated exclusively for that specific train_no, or the median departure delay for that specific station_name.
+
+For Intermediate/Destination Stations (station_no > 1): Use spatiotemporal interpolation (forward-filling) to carry the known delay forward from the train's preceding station.
+
+For Completely Missing Sequences: Apply the Cancellation Drop Rule. If the delay is missing at the origin and remains missing for the entire journey, drop the tuples entirely, as the train was likely cancelled.

@@ -421,7 +421,7 @@ Following the Key Resolution stage, the ETL and Data Cleaning phase commenced, f
 
 Conclusion and Next Stage
 -------------------------
-Step 2.1 is successfully completed. The initial missing value rules for the dimension and schedule tables have been executed, and the exact operational context of the delay metric has been mathematically defined. The project is now ready to handle the remaining numeric anomalies in the massive delay fact table[cite: 12]. 
+Step 2.1 is successfully completed. The initial missing value rules for the dimension and schedule tables have been executed, and the exact operational context of the delay metric has been mathematically defined. The project is now ready to handle the remaining numeric anomalies in the massive delay fact table. 
 
 Output files:
 - analysis/step02_01_ETL_cleaning.ipynb
@@ -445,3 +445,58 @@ DATA WAREHOUSE DESIGN
     └── Link FACT_DELAY to dim_station_resolved
         ↓
 OLAP / ANALYSIS
+
+06/10/2026
+ETL / DATA CLEANING (STEP 2.2) — SPATIOTEMPORAL IMPUTATION OF MISSING DELAYS
+
+Following the resolution of the delay field context, the ETL pipeline addressed the 1,874,271 structured missing values in the 38-million-row combined_delay.csv fact table. Because train delays cascade sequentially across a network, missing values could not be blindly replaced with zero. A three-step out-of-core DuckDB script was executed to resolve these gaps while preserving time-series continuity for future predictive models.
+
+1. Cancellation Drop Rule
+
+Initial Discovery: Certain train journeys logged zero valid delays across their entire route, representing completely missing sequences (cancelled or short-terminated trains).
+
+Technique Applied: Group-wise filtering and conditional deletion.
+
+Resolution: Journeys with 0 valid delays were identified and entirely dropped before any imputation occurred. This prevented the pipeline from generating "phantom trains" that would artificially skew bottleneck identification.
+
+2. Origin Imputation
+
+Initial Discovery: Forward-filling cannot apply to origin stations (station_no = 1) because there is no preceding station to pull data from.
+
+Technique Applied: Class-specific central tendency.
+
+Resolution: Missing departure delays at origin stations were replaced with the median departure delay calculated exclusively for that specific train_no. This established a mathematically sound baseline for the start of the journey.
+
+3. Spatiotemporal Imputation (Forward-Filling)
+
+Initial Discovery: Intermediate and destination stations contained mid-route reporting gaps due to tracking blackouts.
+
+Technique Applied: Spatiotemporal Interpolation (Last Observation Carried Forward).
+
+Resolution: A time-series window function (LAST_VALUE ... IGNORE NULLS) partitioned by date and train_no was used to drag the preceding known physical delay forward to fill the intermediate gaps. This bridged temporary reporting gaps without breaking the continuous numeric sequence required for time-shifted delta calculations.
+
+4. Verification and Export
+
+Technique Applied: Statistical auditing using Pandas and DuckDB.
+
+Result: The datasets successfully verified at 0 remaining missing values. The fully imputed 38-million-row (roughly) fact table was safely exported to results/combined_delay_imputed.csv without modifying the raw source data.
+
+Conclusion and Next Stage
+Step 2.2 is officially complete. The structurally missing delay values have been fully resolved without injecting phantom congestion into the dataset.
+
+Output files:
+
+analysis/step02_02_ETL_cleaning.ipynb
+
+results/combined_delay_imputed.csv
+
+NEXT STAGE:
+KEY RESOLUTION [done]
+↓
+ETL / DATA CLEANING
+├── Apply missing value rules (station_address, schedule times) [done]
+├── Resolve delay field context [done]
+├── Handle 1.87 million missing delay values (Spatiotemporal Imputation) [done]
+└── Smooth noisy delay values / handle extreme numeric outliers
+↓
+DATA WAREHOUSE DESIGN
