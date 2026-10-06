@@ -1,0 +1,36 @@
+{
+    "positive_outlier_metrics": {
+        "max_positive_delay": 525592.0,
+        "mean_delay": 36.855588085245316,
+        "std_dev_delay": 284.1515855510185,
+        "delays_over_24_hours": 15564
+    },
+    "early_arrival_validation": {
+        "max_early_minutes": -120.0,
+        "average_early_minutes": -13.533920119473892,
+        "conclusion": "Negative values represent valid operational early arrivals. Retained intact as negative deltas without mathematical smoothing."
+    },
+    "bottleneck_thresholds": {
+        "true_mean": 35.64702773669935,
+        "true_std_dev": 66.90768268196882,
+        "high_risk_2sd": 169.462393100637,
+        "critical_risk_3sd": 236.37007578260582,
+        "total_bottleneck_records": 1311727,
+        "conclusion": "High-risk structural bottlenecks mathematically defined as any continuous delay exceeding 169.46 minutes."
+    },
+    "concept_hierarchy": {
+        "table_created": "dim_date",
+        "total_unique_dates": 365,
+        "extracted_attributes": [
+            "year",
+            "quarter",
+            "month",
+            "month_name",
+            "day_of_month",
+            "day_name",
+            "day_of_week",
+            "is_weekend"
+        ],
+        "conclusion": "Raw temporal data successfully transformed into a multidimensional concept hierarchy for OLAP drilling."
+    }
+}
