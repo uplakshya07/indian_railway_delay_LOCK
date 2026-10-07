@@ -16,6 +16,8 @@ results/step01_03_5.duckdb
 results/step02_03_ETL_cleaning.duckdb
 results/step01_03_5.duckdb.wal
 results/step02_03_ETL_cleaning.duckdb.wal
+results/step03_01_data_warehouse.duckdb
+results/step03_01_data_warehouse.duckdb.wal
 
 # also ignore duckdb temp folder
 results/duckdb_tmp/

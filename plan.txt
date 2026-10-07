@@ -1,0 +1,5 @@
+08/10/2026
+
+I haven't handled this while cleaning: in this project we have not confirmed  the arrival_day in schedule and the date at which the train delay is recorded is the same day. i.e. day consistency in both tables. I think we need to confirm that the day at which the train was arrived, if we subtract the delay minutes with arrival time and after that the day we get is same as arrival day of the train at that station in schedule.
+
+I will re-structure the whole project pipeline and make an optimized version of it once the project is finished.

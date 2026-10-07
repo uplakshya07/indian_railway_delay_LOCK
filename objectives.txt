@@ -106,3 +106,12 @@ For Origin Stations (station_no = 1): Use a class-specific central tendency. Rep
 For Intermediate/Destination Stations (station_no > 1): Use spatiotemporal interpolation (forward-filling) to carry the known delay forward from the train's preceding station.
 
 For Completely Missing Sequences: Apply the Cancellation Drop Rule. If the delay is missing at the origin and remains missing for the entire journey, drop the tuples entirely, as the train was likely cancelled.
+
+07/10/2026
+
+objectives:
+DATA WAREHOUSE DESIGN
+    ├── Build Star / Snowflake Schema
+    ├── Link FACT_DELAY to dim_train_resolved
+    ├── Link FACT_DELAY to dim_station_resolved
+    └── Link FACT_DELAY to dim_date
